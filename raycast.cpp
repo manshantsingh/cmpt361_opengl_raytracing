@@ -1,12 +1,12 @@
 /***********************************************************
- * CMPT 361, Summer 2012
+ * CMPT 361, Spring 2018
  *
  *  raycast.cpp
  *      
  *  Render a simple scene using ray tracing
  * 
- *  NAME:
- *  SFU ID:
+ *  NAME: Manshant Singh Kohli
+ *  SFU ID: 301257171
  *
  *  Template code for drawing a scene using raycasting.
  *  Some portions of the code was originally written by 
@@ -15,9 +15,10 @@
 
 #include "include/Angel.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <string.h>
+#include <string>
 
 #include "trace.h"
 #include "global.h"
@@ -78,7 +79,12 @@ int step_max = 1;
 
 // You can put your flags here
 // a flag to indicate whether you want to have shadows
-int shadow_on = 0;
+bool shadow_on = false,
+	reflection_on = false,
+	refraction_on = false,
+	chess_board_pattern_on = false,
+	stochastic_ray_generation_on = false,
+	super_sampling_on = false;
 
 
 // OpenGL
@@ -222,7 +228,13 @@ int main( int argc, char **argv )
 	// Optional arguments
 	for(int i = 3; i < argc; i++)
 	{
-		if (strcmp(argv[i], "-s") == 0)	shadow_on = 1;
+		std::string a = argv[i];
+		if(a == "+s") shadow_on = true;
+		else if(a == "+l") reflection_on = true;
+		else if(a == "+r") refraction_on = true;
+		else if(a == "+c") chess_board_pattern_on = true;
+		else if(a == "+f") stochastic_ray_generation_on = true;
+		else if(a == "+p") super_sampling_on = true;
 	}
 
 	//

@@ -1,6 +1,7 @@
 #include "sphere.h"
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
+#include <cfloat>
 
 /**********************************************************************
  * This function intersects a ray with a given sphere 'sph'. You should
@@ -13,7 +14,22 @@
  * stored in the "hit" variable
  **********************************************************************/
 float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
-	return 0.0;
+  Vector dist = get_vec(sph->center, o);
+
+  float a = vec_dot(u,u);
+  float b = 2 * vec_dot(u, dist);
+  float c = vec_dot(dist, dist) - (sph->radius * sph->radius);
+
+  float discriminat = b*b - 4*a*c;
+
+  if(discriminat >= 0.0){
+    float t = (-b - sqrt(discriminat))/(2*a);
+    if(t>0){
+      *hit = get_point(o, vec_scale(u, t));
+      return t;
+    }
+  }
+	return -1.0;
 }
 
 /*********************************************************************
@@ -22,12 +38,18 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
  * which arguments to use for the function. For exmaple, note that you
  * should return the point of intersection to the calling function.
  **********************************************************************/
-Spheres *intersect_scene() {
-//
-// do your thing here
-//
-
-	return NULL;
+Spheres *intersect_scene(Point o, Vector u, Spheres *sph, Point *hit) {
+  Spheres * closest = nullptr;
+  float min_dist = FLT_MAX;
+  while(sph){
+    float dist = intersect_sphere(o,u,sph,hit);
+    if(dist != -1.0 && dist < min_dist){
+      closest=sph;
+      min_dist=dist;
+    }
+    sph = sph->next;
+  }
+	return closest;
 }
 
 /*****************************************************

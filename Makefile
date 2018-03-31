@@ -25,7 +25,7 @@ CC= g++
 # The flags that will be used to compile the object file.
 # If you want to debug your program,
 # you can add '-g' on the following line
-CFLAGS= -O3 -g -Wall -pedantic -DGL_GLEXT_PROTOTYPES
+CFLAGS= -std=c++11 -O3 -g -Wall -pedantic -DGL_GLEXT_PROTOTYPES
 
 # The name of the final executable 
 EXECUTABLE= raycast
@@ -44,7 +44,9 @@ LIBFLAG= -L$(LIBDIR)
 OBJECT= $(SOURCE:.cpp=.o)
 
 # Don't touch any of these either if you don't know what you're doing 
-all: $(OBJECT) depend
+all: $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECT) depend
 	$(CC) $(CFLAGS) $(INCLUDEFLAG) $(LIBFLAG)  $(OBJECT) -o $(EXECUTABLE) $(LDFLAGS)
 
 depend:
@@ -58,5 +60,9 @@ clean_object:
 
 clean:
 	rm -f $(OBJECT) depend $(EXECUTABLE)
+
+# custom
+1: $(EXECUTABLE)
+	./$(EXECUTABLE) -d 0
 
 include depend
