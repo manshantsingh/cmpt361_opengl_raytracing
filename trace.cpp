@@ -88,6 +88,15 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
 	return color;
 }
 
+void fix_color(RGB_float & color){
+  if(color.r < 0.0) color.r = 0.0;
+  else if(color.r > 1.0) color.r = 1.0;
+  if(color.g < 0.0) color.g = 0.0;
+  else if(color.g > 1.0) color.g = 1.0;
+  if(color.b < 0.0) color.b = 0.0;
+  else if(color.b > 1.0) color.b = 1.0;
+}
+
 /************************************************************************
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
@@ -111,7 +120,8 @@ RGB_float recursive_ray_trace(Vector ray, int nSteps) {
     color = phong(hit, eye_vec, surf_norm, closest);
   }
 
-	return color;
+  fix_color(color);
+  return color;
 }
 
 /*********************************************************************
