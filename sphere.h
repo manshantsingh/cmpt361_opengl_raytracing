@@ -20,6 +20,7 @@ typedef struct sphere {
   struct sphere *next;
 } Spheres;   // a list of spheres
 
+bool intersect_shadow(Point, Vector, Spheres *);
 // intersect ray with sphere
 Spheres *intersect_scene(Point, Vector, Spheres *, Point *);
 // return the unit normal at a point on sphere

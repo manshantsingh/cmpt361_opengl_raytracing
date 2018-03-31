@@ -64,5 +64,7 @@ clean:
 # custom
 1: $(EXECUTABLE)
 	./$(EXECUTABLE) -d 0
+2: $(EXECUTABLE)
+	./$(EXECUTABLE) -d 0 +s
 
 include depend

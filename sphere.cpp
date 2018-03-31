@@ -20,16 +20,32 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
   float b = 2 * vec_dot(u, dist);
   float c = vec_dot(dist, dist) - (sph->radius * sph->radius);
 
-  float discriminat = b*b - 4*a*c;
+  float d = b*b - 4*a*c;
 
-  if(discriminat >= 0.0){
-    float t = (-b - sqrt(discriminat))/(2*a);
+  if(d >= 0.0){
+    float t = (-b - sqrt(d))/(2*a);
     if(t>0){
       *hit = get_point(o, vec_scale(u, t));
       return t;
     }
   }
 	return -1.0;
+}
+
+bool intersect_shadow(Point o, Vector u, Spheres * sph){
+  normalize(&u);
+  while(sph){
+    Vector dist = get_vec(sph->center, o);
+    float a = vec_dot(u,u);
+    float b = 2 * vec_dot(u, dist);
+    float c = vec_dot(dist, dist) - (sph->radius * sph->radius);
+    float d = b*b - 4*a*c;
+    if(d >= 0.0 && (-b - sqrt(d))/(2*a) > 0.0 && (-b + sqrt(d))/(2*a) > 0.0){
+      return true;
+    }
+    sph = sph->next;
+  }
+  return false;
 }
 
 /*********************************************************************

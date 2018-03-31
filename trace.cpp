@@ -58,30 +58,33 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
   float d = vec_len(lightVec);
   normalize(&lightVec);
 
-  float coef = 1/(decay_a + decay_b*d + decay_c*d*d);
-
   RGB_float color{0,0,0};
-  float dot = vec_dot(surf_norm, lightVec);
-  float p = pow(vec_dot(vec_minus(vec_scale(surf_norm, 2*dot), lightVec), v), sph->mat_shineness);
 
-  // // change this for shadow
-  // color.r += global_ambient[0] * sph->mat_ambient[0];
-  // color.g += global_ambient[1] * sph->mat_ambient[1];
-  // color.b += global_ambient[2] * sph->mat_ambient[2];
+  // change this for shadow
+  if(shadow_on && intersect_shadow(q, lightVec, scene)){
+    color.r = global_ambient[0] * sph->reflectance;
+    color.g = global_ambient[1] * sph->reflectance;
+    color.b = global_ambient[2] * sph->reflectance;
+  }
+  else{
+    float coef = 1/(decay_a + decay_b*d + decay_c*d*d);
+    float dot = vec_dot(surf_norm, lightVec);
+    float p = pow(vec_dot(vec_minus(vec_scale(surf_norm, 2*dot), lightVec), v), sph->mat_shineness);
 
-  color.r += light1_ambient[0] * sph->mat_ambient[0];
-  color.g += light1_ambient[1] * sph->mat_ambient[1];
-  color.b += light1_ambient[2] * sph->mat_ambient[2];
+    color.r += light1_ambient[0] * sph->mat_ambient[0];
+    color.g += light1_ambient[1] * sph->mat_ambient[1];
+    color.b += light1_ambient[2] * sph->mat_ambient[2];
 
-  color.r += coef *
-              (light1_diffuse[0] * sph->mat_diffuse[0] * dot +
-                light1_specular[0] * sph->mat_specular[0] * p);
-  color.g += coef *
-              (light1_diffuse[1] * sph->mat_diffuse[1] * dot +
-                light1_specular[1] * sph->mat_specular[1] * p);
-  color.b += coef *
-              (light1_diffuse[2] * sph->mat_diffuse[2] * dot +
-                light1_specular[2] * sph->mat_specular[2] * p);
+    color.r += coef *
+                (light1_diffuse[0] * sph->mat_diffuse[0] * dot +
+                  light1_specular[0] * sph->mat_specular[0] * p);
+    color.g += coef *
+                (light1_diffuse[1] * sph->mat_diffuse[1] * dot +
+                  light1_specular[1] * sph->mat_specular[1] * p);
+    color.b += coef *
+                (light1_diffuse[2] * sph->mat_diffuse[2] * dot +
+                  light1_specular[2] * sph->mat_specular[2] * p);
+  }
 	return color;
 }
 
