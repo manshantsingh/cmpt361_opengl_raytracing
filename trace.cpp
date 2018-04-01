@@ -63,9 +63,9 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
 
   // change this for shadow
   if(shadow_on && intersect_shadow(q, lightVec, scene)){
-    color.r = global_ambient[0] * sph->reflectance;
-    color.g = global_ambient[1] * sph->reflectance;
-    color.b = global_ambient[2] * sph->reflectance;
+    color.r = global_ambient[0];
+    color.g = global_ambient[1];
+    color.b = global_ambient[2];
   }
   else{
     float coef = 1/(decay_a + decay_b*d + decay_c*d*d);
@@ -146,6 +146,8 @@ RGB_float recursive_ray_trace(Vector ray, int nSteps) {
         }
         reflectedColor = clr_scale(reflectedColor, 1/( 1 + RANDOM_RAY_SCALE_VALUE*NUM_RANDOM_RAYS));
       }
+
+      color = clr_add(color, clr_scale(reflectedColor, closest->reflectance));
     }
   }
 
