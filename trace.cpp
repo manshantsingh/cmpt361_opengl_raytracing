@@ -70,7 +70,9 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
   else{
     float coef = 1/(decay_a + decay_b*d + decay_c*d*d);
     float dot = vec_dot(surf_norm, lightVec);
-    float p = pow(vec_dot(vec_minus(vec_scale(surf_norm, 2*dot), lightVec), v), sph->mat_shineness);
+    Vector reflectedRay = vec_minus(vec_scale(surf_norm, 2*fmax(dot, 0.0)), lightVec);
+    normalize(&reflectedRay);
+    float p = pow(vec_dot(reflectedRay, v), sph->mat_shineness);
 
     color.r += light1_ambient[0] * sph->mat_ambient[0];
     color.g += light1_ambient[1] * sph->mat_ambient[1];
@@ -127,7 +129,7 @@ RGB_float recursive_ray_trace(Vector ray, int nSteps) {
     color = phong(hit, eye_vec, surf_norm, closest);
 
     if(reflection_on && nSteps <= step_max){
-      Vector reflectedRay = vec_minus(vec_scale(surf_norm, 2*vec_dot(surf_norm, lightVec)), lightVec);
+      Vector reflectedRay = vec_minus(vec_scale(surf_norm, 2*fmax(vec_dot(surf_norm, lightVec), 0.0)), lightVec);
       normalize(&reflectedRay);
 
       RGB_float reflectedColor = recursive_ray_trace(reflectedRay, nSteps + 1);
