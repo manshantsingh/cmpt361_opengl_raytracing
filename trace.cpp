@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <ctime>
 #include <GL/glut.h>
 #include <cmath>
 #include "global.h"
@@ -101,6 +102,9 @@ void fix_color(RGB_float & color){
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
  ************************************************************************/
+const int NUM_RANDOM_RAYS = 5;
+const float RANDOM_RAY_SCALE_VALUE = 0.1;
+
 RGB_float recursive_ray_trace(Vector ray, int nSteps) {
 //
 // do your thing here
@@ -117,7 +121,30 @@ RGB_float recursive_ray_trace(Vector ray, int nSteps) {
     Vector surf_norm = sphere_normal(hit, closest);
     normalize(&surf_norm);
 
+    Vector lightVec = get_vec(hit, eye_pos);
+    normalize(&lightVec);
+
     color = phong(hit, eye_vec, surf_norm, closest);
+
+    if(reflection_on && nSteps <= step_max){
+      Vector reflectedRay = vec_minus(vec_scale(surf_norm, 2*vec_dot(surf_norm, lightVec)), lightVec);
+      normalize(&reflectedRay);
+
+      RGB_float reflectedColor = recursive_ray_trace(reflectedRay, nSteps + 1);
+
+      if(stochastic_ray_generation_on){
+        for(int i=0; i<NUM_RANDOM_RAYS; i++){
+          Vector randomRay = reflectedRay;
+          randomRay.x += ((float) rand())/RAND_MAX;
+          randomRay.y += ((float) rand())/RAND_MAX;
+          randomRay.z += ((float) rand())/RAND_MAX;
+          normalize(&randomRay);
+          RGB_float randomReflectedColor = recursive_ray_trace(reflectedRay, nSteps + 1);
+          reflectedColor = clr_add(reflectedColor, clr_scale(randomReflectedColor, RANDOM_RAY_SCALE_VALUE));
+        }
+        reflectedColor = clr_scale(reflectedColor, 1/( 1 + RANDOM_RAY_SCALE_VALUE*NUM_RANDOM_RAYS));
+      }
+    }
   }
 
   fix_color(color);
@@ -132,7 +159,11 @@ RGB_float recursive_ray_trace(Vector ray, int nSteps) {
  * ray tracer. Feel free to change other parts of the function however,
  * if you must.
  *********************************************************************/
+const int dx[] = {-1,-1, 1, 1};
+const int dy[] = {-1, 1,-1, 1};
+
 void ray_trace() {
+  srand (time(NULL));
   int i, j;
   float x_grid_size = image_width / float(win_width);
   float y_grid_size = image_height / float(win_height);
@@ -152,7 +183,19 @@ void ray_trace() {
       ray = get_vec(eye_pos, cur_pixel_pos);
       normalize(&ray);
 
-      ret_color = recursive_ray_trace(ray, 0);
+      ret_color = recursive_ray_trace(ray, step_max);
+
+      if(super_sampling_on){
+        for(int k=0;k<4;k++){
+          Point pos = cur_pixel_pos;
+          pos.x += dx[k] * x_grid_size * 0.5;
+          pos.y += dy[k] * x_grid_size * 0.5;
+
+          Vector new_ray = get_vec(eye_pos, pos);
+          ret_color = clr_add(ret_color, recursive_ray_trace(new_ray, step_max));
+        }
+        ret_color = clr_scale(ret_color, 0.2);
+      }
 
       frame[i][j][0] = GLfloat(ret_color.r);
       frame[i][j][1] = GLfloat(ret_color.g);

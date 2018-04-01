@@ -40,7 +40,7 @@ bool intersect_shadow(Point o, Vector u, Spheres * sph){
     float b = 2 * vec_dot(u, dist);
     float c = vec_dot(dist, dist) - (sph->radius * sph->radius);
     float d = b*b - 4*a*c;
-    if(d >= 0.0 && (-b - sqrt(d))/(2*a) > 0.0 && (-b + sqrt(d))/(2*a) > 0.0){
+    if(d >= 0.0 && (-b - sqrt(d))/(2*a) >= 0.0 && (-b + sqrt(d))/(2*a) >= 0.0){
       return true;
     }
     sph = sph->next;
