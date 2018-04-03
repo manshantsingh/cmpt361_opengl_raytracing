@@ -23,7 +23,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
   float d = b*b - 4*a*c;
 
   if(d >= 0.0){
-    float t = (-b - sqrt(d))/(2*a);
+    float t = (-b - sqrtf(d))/(2*a);
     if(t>0){
       *hit = get_point(o, vec_scale(u, t));
       return t;
@@ -40,7 +40,7 @@ bool intersect_shadow(Point o, Vector u, Spheres * sph){
     float b = 2 * vec_dot(u, dist);
     float c = vec_dot(dist, dist) - (sph->radius * sph->radius);
     float d = b*b - 4*a*c;
-    if(d >= 0.0 && (-b - sqrt(d))/(2*a) >= 0.0 && (-b + sqrt(d))/(2*a) >= 0.0){
+    if(d > 0.0 && (-b - sqrtf(d))/(2*a) > 0.0001 && (-b + sqrtf(d))/(2*a) > 0.0001){
       return true;
     }
     sph = sph->next;

@@ -68,5 +68,10 @@ clean:
 	./$(EXECUTABLE) -d 0 +s
 3: $(EXECUTABLE)
 	./$(EXECUTABLE) -d 5 +s +l
+fs: $(EXECUTABLE)
+	./$(EXECUTABLE) -d 5 +l +f +p +c
+f: $(EXECUTABLE)
+	./$(EXECUTABLE) -d 5 +s +l +f +p +c
+
 
 include depend
