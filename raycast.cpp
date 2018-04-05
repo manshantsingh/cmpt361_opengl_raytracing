@@ -56,6 +56,17 @@ RGB_float null_clr = {0.0, 0.0, 0.0};   // NULL color
 Point eye_pos = {0.0, 0.0, 0.0};  // eye position
 float image_plane = -2;           // image plane position
 
+//chessboard
+Point chessboard_pos = {0,2.5,0};
+Vector chessboard_normal = {0,15,4};
+
+// 0 is black and 1 is white
+RGB_float chessboard_ambient[2] = {{0, 0, 0}, {1, 1, 1}};
+RGB_float chessboard_diffuse[2] = {{0, 0, 0}, {1, 1, 1}};
+RGB_float chessboard_specular[2] = {{0, 0, 0}, {1, 1, 1}};
+float chessboard_shineness = 1;
+float chessboard_reflectance = 0.5;
+
 // list of spheres in the scene
 Spheres *scene = NULL;
 
@@ -244,6 +255,7 @@ int main( int argc, char **argv )
 	// happy to carry no parameters
 	//
 	printf("Rendering scene using my fantastic ray tracer ...\n");
+	normalize(&chessboard_normal);
 	ray_trace();
 
 	// we want to make sure that intensity values are normalized

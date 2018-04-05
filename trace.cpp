@@ -21,6 +21,16 @@ extern float image_plane;
 extern RGB_float background_clr;
 extern RGB_float null_clr;
 
+
+extern Point chessboard_pos;
+extern Vector chessboard_normal;
+
+extern RGB_float chessboard_ambient[];
+extern RGB_float chessboard_diffuse[];
+extern RGB_float chessboard_specular[];  
+extern float chessboard_shineness;
+extern float chessboard_reflectance;
+
 extern Spheres *scene;
 
 // light 1 position and color
@@ -46,6 +56,77 @@ extern bool chess_board_pattern_on;
 extern bool stochastic_ray_generation_on;
 extern bool super_sampling_on;
 
+Vector normalized(Vector v){
+  normalize(&v);
+  return v;
+}
+
+
+
+bool intersect_chessboard(Point o, Vector u, Point& hit){
+  Vector toPlane = get_vec(chessboard_pos, o);
+  float toPlaneDotChessBoardNormal = vec_dot(chessboard_normal, toPlane);
+  float uDotChessBoardNormal = vec_dot(chessboard_normal, u);
+
+  if(toPlaneDotChessBoardNormal==0 || uDotChessBoardNormal==0) return false;
+
+  float r = toPlaneDotChessBoardNormal/uDotChessBoardNormal;
+  if(r<=0) return false;
+
+  Vector v = vec_scale(u, r);
+  hit = get_point(o, v);
+  return fabs(hit.x)<4.0 && hit.z <-2 && hit.z >= -10;
+}
+
+RGB_float phongChessboard(Point q, Vector v, int color_index){
+
+  //AMBIENT GLOBAL
+  RGB_float ambient = {
+    chessboard_ambient[color_index].r *2*global_ambient[0]*chessboard_reflectance,
+    chessboard_ambient[color_index].g *2*global_ambient[1]*chessboard_reflectance,
+    chessboard_ambient[color_index].b *2*global_ambient[2]*chessboard_reflectance
+  };
+
+  Vector Shadow = get_vec(q, light1);
+  if(shadow_on && intersect_shadow(q, Shadow, scene)) return ambient;
+
+  Vector light = normalized(get_vec(q, light1));
+
+  float decay = 1.0/( decay_a + decay_b * vec_len(light) + decay_c*pow(vec_len(light), 2));
+
+  float lDotChessNormal = vec_dot(chessboard_normal, light);
+  RGB_float diffuse = {
+    light1_diffuse[0] * chessboard_diffuse[color_index].r * lDotChessNormal,
+    light1_diffuse[1] * chessboard_diffuse[color_index].g * lDotChessNormal,
+    light1_diffuse[2] * chessboard_diffuse[color_index].b * lDotChessNormal
+  };
+
+  float ref_scalar = 2.0*(vec_dot(chessboard_normal, light));
+  Vector h = vec_plus(vec_scale(chessboard_normal, ref_scalar), vec_scale(light, -1.0));
+  float s = pow(vec_dot(v, h), chessboard_shineness);
+  RGB_float specular = {
+    light1_specular[0]*chessboard_specular[color_index].r*s,
+    light1_specular[1]*chessboard_specular[color_index].g*s,
+    light1_specular[2]*chessboard_specular[color_index].b*s
+  };
+
+  RGB_float color = clr_add(diffuse, specular);
+  color = clr_scale(color, decay);
+  color = clr_add(color, ambient);
+
+  return color;
+}
+
+RGB_float getBoardColor(Point hit){
+  Vector eye_vec = normalized(get_vec(hit, eye_pos));
+  if((((int)hit.x)%2 == 0 && ((int)hit.z)%2==0) || (((int)hit.x)%2!=0 && ((int)hit.z)%2!=0)){
+    return phongChessboard(hit, eye_vec, hit.x>0?1:0);
+  }
+  return phongChessboard(hit, eye_vec, hit.x>0?0:1);
+}
+
+
+
 /////////////////////////////////////////////////////////////////////
 
 /*********************************************************************
@@ -70,8 +151,7 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
   else{
     float coef = 1/(decay_a + decay_b*d + decay_c*d*d);
     float dot = vec_dot(surf_norm, lightVec);
-    Vector reflectedRay = vec_minus(vec_scale(surf_norm, 2*fmax(dot, 0.0)), lightVec);
-    normalize(&reflectedRay);
+    Vector reflectedRay = normalized(vec_minus(vec_scale(surf_norm, 2*fmax(dot, 0.0)), lightVec));
     float p = pow(vec_dot(reflectedRay, v), sph->mat_shineness);
 
     color.r += light1_ambient[0] * sph->mat_ambient[0];
@@ -107,32 +187,26 @@ void fix_color(RGB_float & color){
 const int NUM_RANDOM_RAYS = 5;
 const float RANDOM_RAY_SCALE_VALUE = 0.1;
 
-RGB_float recursive_ray_trace(Vector ray, int nSteps) {
+RGB_float recursive_ray_trace(Point o, Vector ray, int nSteps) {
 //
 // do your thing here
 //
+  nSteps--;
 	RGB_float color = background_clr;
 
   Point hit;
   Spheres * closest = intersect_scene(eye_pos, ray, scene, &hit);
 
   if(closest){
-    Vector eye_vec = get_vec(hit, eye_pos);
-    normalize(&eye_vec);
+    Vector surf_norm = normalized(sphere_normal(hit, closest));
+    Vector lightVec = normalized(get_vec(hit, o));
 
-    Vector surf_norm = sphere_normal(hit, closest);
-    normalize(&surf_norm);
+    color = phong(hit, normalized(get_vec(hit, eye_pos)), surf_norm, closest);
 
-    Vector lightVec = get_vec(hit, eye_pos);
-    normalize(&lightVec);
+    if(reflection_on && nSteps >= 0){
+      Vector reflectedRay = normalized(vec_minus(vec_scale(surf_norm, 2*fmax(vec_dot(surf_norm, lightVec), 0.0)), lightVec));
 
-    color = phong(hit, eye_vec, surf_norm, closest);
-
-    if(reflection_on && nSteps <= step_max){
-      Vector reflectedRay = vec_minus(vec_scale(surf_norm, 2*fmax(vec_dot(surf_norm, lightVec), 0.0)), lightVec);
-      normalize(&reflectedRay);
-
-      RGB_float reflectedColor = recursive_ray_trace(reflectedRay, nSteps + 1);
+      RGB_float reflectedColor = recursive_ray_trace(hit, reflectedRay, nSteps);
 
       if(stochastic_ray_generation_on){
         for(int i=0; i<NUM_RANDOM_RAYS; i++){
@@ -141,13 +215,39 @@ RGB_float recursive_ray_trace(Vector ray, int nSteps) {
           randomRay.y += ((float) rand())/RAND_MAX;
           randomRay.z += ((float) rand())/RAND_MAX;
           normalize(&randomRay);
-          RGB_float randomReflectedColor = recursive_ray_trace(reflectedRay, nSteps + 1);
+          RGB_float randomReflectedColor = recursive_ray_trace(hit, reflectedRay, nSteps);
           reflectedColor = clr_add(reflectedColor, clr_scale(randomReflectedColor, RANDOM_RAY_SCALE_VALUE));
         }
         reflectedColor = clr_scale(reflectedColor, 1/( 1 + RANDOM_RAY_SCALE_VALUE*NUM_RANDOM_RAYS));
       }
 
       color = clr_add(color, clr_scale(reflectedColor, closest->reflectance));
+    }
+  }
+  else if(chess_board_pattern_on && intersect_chessboard(o, ray, hit)){
+    Vector lightVec = normalized(get_vec(hit, o));
+
+    color = getBoardColor(hit);
+
+    if(reflection_on && nSteps >= 0){
+      Vector reflectedRay = normalized(vec_minus(vec_scale(chessboard_normal, 2*fmax(vec_dot(chessboard_normal, lightVec), 0.0)), lightVec));
+
+      RGB_float reflectedColor = recursive_ray_trace(hit, reflectedRay, nSteps);
+
+      if(stochastic_ray_generation_on){
+        for(int i=0; i<NUM_RANDOM_RAYS; i++){
+          Vector randomRay = reflectedRay;
+          randomRay.x += ((float) rand())/RAND_MAX;
+          randomRay.y += ((float) rand())/RAND_MAX;
+          randomRay.z += ((float) rand())/RAND_MAX;
+          normalize(&randomRay);
+          RGB_float randomReflectedColor = recursive_ray_trace(hit, reflectedRay, nSteps);
+          reflectedColor = clr_add(reflectedColor, clr_scale(randomReflectedColor, RANDOM_RAY_SCALE_VALUE));
+        }
+        reflectedColor = clr_scale(reflectedColor, 1/( 1 + RANDOM_RAY_SCALE_VALUE*NUM_RANDOM_RAYS));
+      }
+
+      color = clr_add(color, clr_scale(reflectedColor, chessboard_reflectance));
     }
   }
 
@@ -184,10 +284,9 @@ void ray_trace() {
 
   for (i=0; i<win_height; i++) {
     for (j=0; j<win_width; j++) {
-      ray = get_vec(eye_pos, cur_pixel_pos);
-      normalize(&ray);
+      ray = normalized(get_vec(eye_pos, cur_pixel_pos));
 
-      ret_color = recursive_ray_trace(ray, step_max);
+      ret_color = recursive_ray_trace(eye_pos, ray, step_max);
 
       if(super_sampling_on){
         for(int k=0;k<4;k++){
@@ -196,7 +295,7 @@ void ray_trace() {
           pos.y += dy[k] * x_grid_size * 0.5;
 
           Vector new_ray = get_vec(eye_pos, pos);
-          ret_color = clr_add(ret_color, recursive_ray_trace(new_ray, step_max));
+          ret_color = clr_add(ret_color, recursive_ray_trace(eye_pos, new_ray, step_max));
         }
         ret_color = clr_scale(ret_color, 0.2);
       }
